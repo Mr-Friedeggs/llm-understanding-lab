@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>大模型理解-任雨峰（荷包蛋）</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" role="img">
+              <path d="M12 3.4 4.6 7.7v8.6L12 20.6l7.4-4.3V7.7L12 3.4Zm0 2.3 5.4 3.1v6.4L12 18.3l-5.4-3.1V8.8L12 5.7Z" />
+              <path d="M12 8.1a3.9 3.9 0 1 0 0 7.8 3.9 3.9 0 0 0 0-7.8Zm0 2a1.9 1.9 0 1 1 0 3.8 1.9 1.9 0 0 1 0-3.8Z" />
+            </svg>
+          </div>
+          <div>
+            <h1>大模型理解-任雨峰（荷包蛋）</h1>
+            <p>一个面向普通人的简化理解：抓住直觉，不假装复现全部细节。</p>
+          </div>
+        </div>
+        <div class="status-strip" aria-live="polite">
+          <div class="status-pill">
+            <span class="status-label">模块</span>
+            <strong id="levelStatus">1 / 4</strong>
+          </div>
+          <button class="icon-button" id="resetButton" type="button" aria-label="重新开始">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7.2 7.4a7 7 0 1 1-1.1 8.4l1.7-1a5 5 0 1 0 .8-6l2.1 2.1H4.2V4.4l3 3Z" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <main class="game-layout">
+        <nav class="mission-map" aria-label="学习模块">
+          <div class="panel-title">
+            <span>学习路径</span>
+          </div>
+          <ol id="missionList" class="mission-list"></ol>
+        </nav>
+
+        <section class="playfield" aria-label="交互演示区域">
+          <div class="visual-stage">
+            <canvas id="modelCanvas" width="920" height="360" aria-hidden="true"></canvas>
+            <div class="machine-label">
+              <span id="machineMode">Token 进入模型</span>
+              <span id="machinePulse">正在观察上下文</span>
+            </div>
+          </div>
+
+          <div class="level-header">
+            <div>
+              <p class="eyebrow" id="conceptName">Token</p>
+              <h2 id="levelTitle">模块一：Token、向量与矩阵</h2>
+            </div>
+            <div class="level-meter" aria-label="当前模块进度">
+              <span id="levelMeterFill"></span>
+            </div>
+          </div>
+
+          <div id="levelArea" class="level-area"></div>
+        </section>
+
+        <aside class="coach-panel" aria-label="通俗理解提示">
+          <div class="panel-title">
+            <span>通俗理解</span>
+          </div>
+          <p id="teachLine" class="teach-line"></p>
+          <div class="glossary">
+            <div>
+              <span class="glossary-key">输入</span>
+              <strong id="inputHint">上下文</strong>
+            </div>
+            <div>
+              <span class="glossary-key">输出</span>
+              <strong id="outputHint">下一个 token</strong>
+            </div>
+            <div>
+              <span class="glossary-key">风险</span>
+              <strong id="riskHint">看起来合理也可能错</strong>
+            </div>
+          </div>
+          <div id="coachNote" class="coach-note"></div>
+        </aside>
+      </main>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
