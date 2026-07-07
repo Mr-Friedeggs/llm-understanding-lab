@@ -105,12 +105,12 @@ const levels = [
     machineMode: "自注意力层计算中",
     machinePulse: "多头正在连接上下文 token",
     teachLine:
-      "可以把 Transformer 理解成把前面出现过的词元都做成活字；生成新词元时，会拿当前位置和前面的活字逐个配对比较。",
+      "可以把 Transformer 想成活字印刷：前面出现过的词元都像已经摆好的活字；生成新词元时，当前位置会和这些活字逐个比较，再判断下一个该接哪个字块。",
     coachNote:
       "也就是说，输出仍然是逐 token 生成；区别在于每一步内部如何处理上下文：RNN 顺序传递，Transformer 让当前位置直接和上下文建立权重关系。",
     inputHint: "上下文 token 表示",
     outputHint: "加权汇总后的新表示",
-    riskHint: "权重高不代表事实正确",
+    riskHint: "注意力权重只是计算线索",
     challenge:
       "从 RNN 的设计限制引入：如果只把信息按顺序往后传，长上下文容易丢重点。Transformer 在生成器里用自注意力，让当前位置直接比较上下文里哪些 token 更重要。",
     questions: [
@@ -122,9 +122,9 @@ const levels = [
     words: ["在", "上海", "明天", "天气", "适合", "跑步", "吗"],
     target: ["上海", "明天", "天气", "跑步"],
     heads: [
-      { name: "地点头", focus: ["上海"], weight: "0.32", color: "#3578c7" },
-      { name: "时间头", focus: ["明天"], weight: "0.27", color: "#f5b84b" },
-      { name: "任务头", focus: ["天气", "跑步"], weight: "0.34", color: "#138f8a" },
+      { name: "地点头", focus: ["上海"], value: "地点信息", weight: "0.32", color: "#3578c7" },
+      { name: "时间头", focus: ["明天"], value: "时间信息", weight: "0.27", color: "#f5b84b" },
+      { name: "任务头", focus: ["天气", "跑步"], value: "主题与动作", weight: "0.34", color: "#138f8a" },
     ],
     success:
       "自注意力把分散在上下文里的地点、时间和任务信息汇总进当前生成位置，后面再交给输出层预测下一个 token。",
@@ -395,24 +395,24 @@ function renderIntroLevel(level) {
     <div class="intro-screen">
       <section class="intro-hero">
         <span>简化说明</span>
-        <h3>帮助大家打破对于“智能”的歧义认知。</h3>
+        <h3>帮助加深对“AI”的底层理解。</h3>
         <p>本人非专业科普，只讲大模型在生成/推理时的总体框架，不讲模型训练和底层实现细节。页面里的数字、矩阵和流程都是示意，重点是先建立一条能讲清楚的理解路线。</p>
       </section>
       <div class="intro-grid">
         <article>
           <span>边界 01</span>
-          <h3>将理论转成大白话</h3>
-          <p>示意图里的数字、矩阵和概率用于帮助理解，不代表某个真实模型内部的精确参数。</p>
+          <h3>只谈生成，不谈训练</h3>
+          <p>真实训练会涉及线性代数、概率统计、数据工程、训练优化和系统架构；这里先保留适合入门讲解的生成主线。</p>
         </article>
         <article>
           <span>边界 02</span>
           <h3>作者也是学习者</h3>
-          <p>任雨峰（荷包蛋）把学习过程整理成一套讲解材料；遇到严肃问题，请继续查论文、官方文档和实验。</p>
+          <p>把学习过程整理成一套讲解材料；遇到严肃问题，请继续查论文、官方文档和实验。</p>
         </article>
         <article>
           <span>边界 03</span>
-          <h3>只谈生成，不谈训练</h3>
-          <p>真实训练会涉及线性代数、概率统计、数据工程、训练优化和系统架构；这里先保留适合入门讲解的生成主线。</p>
+          <h3>将理论转成大白话</h3>
+          <p>示意图里的数字、矩阵和概率用于帮助理解，不代表某个真实模型内部的精确参数。</p>
         </article>
       </div>
     </div>
@@ -559,8 +559,47 @@ function tokenizeText(text) {
   const source = String(text || "").trim();
   if (!source) return [];
 
-  const knownTerms = ["大模型", "人工智能", "神经网络", "机器学习", "深度学习", "正在", "学习", "模型", "Token", "token", "RAG", "AI"];
+  const knownTerms = [
+    "Transformer",
+    "tokenizer",
+    "embedding",
+    "大语言模型",
+    "人工智能",
+    "神经网络",
+    "机器学习",
+    "深度学习",
+    "上下文",
+    "注意力",
+    "大模型",
+    "天气预报",
+    "中到大雨",
+    "户外跑步",
+    "室内训练",
+    "资料检索",
+    "概率预测",
+    "正在",
+    "学习",
+    "模型",
+    "上海",
+    "明天",
+    "天气",
+    "适合",
+    "跑步",
+    "出门",
+    "最好",
+    "带伞",
+    "回答",
+    "资料",
+    "检索",
+    "Token",
+    "token",
+    "RAG",
+    "AI",
+    "我",
+  ].sort((a, b) => b.length - a.length);
   const tokens = [];
+  const isChinese = (value) => /[\u3400-\u9fff]/.test(value);
+  const isPunctuation = (value) => /[，。！？、；：,.!?;:()（）《》“”"']/u.test(value);
 
   for (let index = 0; index < source.length; ) {
     const char = source[index];
@@ -578,8 +617,32 @@ function tokenizeText(text) {
 
     if (/[A-Za-z0-9]/.test(char)) {
       let end = index + 1;
-      while (end < source.length && /[A-Za-z0-9]/.test(source[end])) end += 1;
+      while (end < source.length && /[A-Za-z0-9_-]/.test(source[end])) end += 1;
       tokens.push(source.slice(index, end));
+      index = end;
+      continue;
+    }
+
+    if (isPunctuation(char)) {
+      tokens.push(char);
+      index += 1;
+      continue;
+    }
+
+    if (isChinese(char)) {
+      let end = index + 1;
+      while (end < source.length && isChinese(source[end])) end += 1;
+      const chineseRun = source.slice(index, end);
+      if (typeof Intl !== "undefined" && Intl.Segmenter) {
+        const segments = Array.from(new Intl.Segmenter("zh", { granularity: "word" }).segment(chineseRun))
+          .map((segment) => segment.segment.trim())
+          .filter(Boolean);
+        tokens.push(...segments);
+      } else {
+        for (let offset = 0; offset < chineseRun.length; offset += 2) {
+          tokens.push(chineseRun.slice(offset, offset + 2));
+        }
+      }
       index = end;
       continue;
     }
@@ -847,7 +910,7 @@ function renderAttentionLevel(level) {
 
         <div class="side-stat attention-main-note">
           <h3><b class="step-index">06</b> 再扩展成多头注意力</h3>
-          <p>多头不是另一个概念，而是把单头注意力并行做多组。每个头用不同权重矩阵，从不同角度看同一句话。</p>
+          <p>多头不是另一个概念，而是把单头注意力并行做多组。每个头都会先用 Q/K 算出“该看谁、看多重”，再用这些权重去加权汇总 V 里的内容，形成当前位置的新表示。</p>
           <div class="attention-head-list">
             ${level.heads
               .map(
@@ -855,7 +918,7 @@ function renderAttentionLevel(level) {
                   <div class="attention-head-card" style="--head-color:${head.color}">
                     <strong>${escapeHtml(head.name)}</strong>
                     <span>${head.focus.map((item) => escapeHtml(item)).join(" / ")}</span>
-                    <em>示意权重 ${escapeHtml(head.weight)}</em>
+                    <em>Q/K 权重 ${escapeHtml(head.weight)} · 汇总 V：${escapeHtml(head.value)}</em>
                   </div>
                 `
               )
@@ -867,7 +930,7 @@ function renderAttentionLevel(level) {
       <div class="attention-row attention-row-single">
         <div class="side-stat attention-main-note attention-output-panel">
           <h3><b class="step-index">07</b> 输出概率，并接到资料检索</h3>
-          <p>通常的语言模型会把最后一层的当前位置表示送入线性层得到 logits，再用 softmax 变成下一个 token 的概率分布。下面只是语言预测，不代表真实天气；下一步要接入资料检索，用证据约束回答。</p>
+          <p>多头注意力先把不同头得到的新表示合并，再送入后面的层。通常语言模型会把最后一层的当前位置表示送入线性层得到 logits，再用 softmax 变成下一个 token 的概率分布。下面只是语言预测，不代表真实天气；下一步要接入资料检索，用证据约束回答。</p>
           <div class="attention-output-flow" aria-label="自注意力到概率输出">
             <span>上下文表示</span>
             <strong>→</strong>
@@ -895,52 +958,101 @@ function renderRagLevel(level) {
   const ragScenarios = [
     {
       title: "假设一：不查资料，直接生成",
-      body: "模型可能会沿着“跑步有益健康”这类常见语言经验往下写，得到回答 2。它很顺口，但没有解决“明天上海真实天气是什么”。",
+      body: "模型会沿着“跑步有益健康”这类常见语言经验往下写，容易得到一个顺口但没查天气的答案。",
+      answer: "对应回答 2：听起来积极，但没有任何天气证据。",
     },
     {
       title: "假设二：查到了过期资料",
-      body: "如果把“上周晴朗”当成证据放进上下文，模型会顺着这条旧线索生成回答 3。问题不是模型没写通顺，而是证据已经不适用。",
+      body: "如果把“上周晴朗”当成证据放进上下文，模型会顺着旧线索回答，文字通顺但依据已经过期。",
+      answer: "对应回答 3：不是模型不会写，而是证据不适用。",
     },
     {
       title: "假设三：查到正确资料再回答",
-      body: "如果把明天中到大雨、路面湿滑、雨天跑步风险放进上下文，模型就会围绕资料 A/B 组织回答，得到回答 1。",
+      body: "如果把明天中到大雨、路面湿滑、雨天跑步风险放进上下文，模型就会围绕资料 A/B 组织回答。",
+      answer: "对应回答 1：有天气和跑步建议支撑，结论更可靠。",
     },
     {
       title: "假设四：资料经常会变",
-      body: "天气、制度、产品手册、业务口径都会更新。RAG 的目的不是让模型永久记住一切，而是在回答前先把当前可用资料放进上下文。",
+      body: "天气、制度、产品手册、业务口径都会更新。RAG 不是让模型永久记住一切，而是在回答前先把当前可用资料放进上下文。",
+      answer: "对应回答 4：没有当前资料时，承认不确定比硬猜更稳。",
     },
   ];
 
   dom.levelArea.innerHTML = `
     ${renderWarmupQuestions(level)}
     <p class="challenge-copy">${escapeHtml(level.challenge)}</p>
+    <div class="rag-analogy" aria-label="RAG 形象理解">
+      <span>RAG 像开卷答题</span>
+      <div>
+        <article>
+          <strong>先检索</strong>
+          <p>从资料库或搜索结果里找和问题最相关的片段。</p>
+        </article>
+        <b>→</b>
+        <article>
+          <strong>拼进上下文</strong>
+          <p>把问题和资料一起放进提示词，而不是临时训练模型。</p>
+        </article>
+        <b>→</b>
+        <article>
+          <strong>再生成</strong>
+          <p>模型仍按概率生成，但会被证据牵引到更靠谱的方向。</p>
+        </article>
+      </div>
+    </div>
     <div class="context-box">
       <span>问题</span>
       <strong>${escapeHtml(level.question)}</strong>
     </div>
 
-      <div class="rag-section-title">
-        <span>推演场景</span>
-        <strong>先看不同假设会生成什么结果</strong>
-      </div>
-    <div class="rag-explain-grid" aria-label="RAG 假设场景推演">
-      ${ragScenarios
-        .map(
-          (item, index) => `
-            <article>
-              <span><b class="step-index">${String(index + 1).padStart(2, "0")}</b> 假设进展</span>
-              <h3>${escapeHtml(item.title)}</h3>
-              <p>${escapeHtml(item.body)}</p>
-            </article>
-          `
-        )
-        .join("")}
+    <div class="rag-simulation-layout" aria-label="RAG 假设场景与示例回答">
+      <section class="rag-scenario-column">
+        <div class="rag-section-title">
+          <span>推演场景</span>
+          <strong>先看不同假设会生成什么结果</strong>
+        </div>
+        <div class="rag-explain-grid">
+          ${ragScenarios
+            .map(
+              (item, index) => `
+                <article>
+                  <span><b class="step-index">${String(index + 1).padStart(2, "0")}</b> 假设进展</span>
+                  <h3>${escapeHtml(item.title)}</h3>
+                  <p>${escapeHtml(item.body)}</p>
+                  <em>${escapeHtml(item.answer)}</em>
+                </article>
+              `
+            )
+            .join("")}
+        </div>
+      </section>
+
+      <section class="rag-answer-column">
+        <div class="rag-section-title">
+          <span>示例回答</span>
+          <strong>把输出和左侧假设对应起来看</strong>
+        </div>
+        <div class="rag-answers">
+          <div class="choice-grid">
+            ${level.answers
+              .map(
+                (answer, index) => `
+                  <button class="choice-card" type="button" data-answer="${index}">
+                    <strong>回答 ${index + 1}</strong>
+                    <span>${escapeHtml(answer.text)}</span>
+                  </button>
+                `
+              )
+              .join("")}
+          </div>
+        </div>
+      </section>
     </div>
 
-      <div class="rag-section-title">
-        <span>示例资料</span>
-        <strong>再看哪些资料能支撑“明天上海是否适合跑步”</strong>
-      </div>
+    <div class="rag-section-title">
+      <span>示例资料</span>
+      <strong>最后判断哪些资料应该被放进上下文</strong>
+    </div>
     <div class="doc-grid" aria-label="可选资料">
       ${level.docs
         .map(
@@ -952,25 +1064,6 @@ function renderRagLevel(level) {
           `
         )
         .join("")}
-    </div>
-
-      <div class="rag-section-title">
-        <span>示例回答</span>
-        <strong>最后判断输出有没有被正确证据约束</strong>
-      </div>
-    <div class="rag-answers">
-      <div class="choice-grid">
-        ${level.answers
-          .map(
-            (answer, index) => `
-              <button class="choice-card" type="button" data-answer="${index}">
-                <strong>回答 ${index + 1}</strong>
-                <span>${escapeHtml(answer.text)}</span>
-              </button>
-            `
-          )
-          .join("")}
-      </div>
     </div>
     ${feedback}
   `;
@@ -1051,7 +1144,7 @@ function renderSummaryLevel(level) {
           <p>token、向量、矩阵运算和自注意力，让模型能在大量文字里计算关系，并把结果组织成连续语言。</p>
         </article>
         <article>
-          <span>别甩锅</span>
+          <span>别甩手</span>
           <h3>它不能替你承担判断责任</h3>
           <p>它能辅助整理和生成，但数据偏差、检索错误、价值选择和后果责任仍要由人来把关。</p>
         </article>
@@ -1066,6 +1159,29 @@ function renderSummaryLevel(level) {
           <li>资料检索可以把外部证据放进上下文，但资料本身也要可靠。</li>
           <li>所以，对大模型最好的态度是：大胆使用，清楚边界，认真核验。</li>
         </ol>
+      </div>
+
+      <div class="summary-use-guide" aria-label="大模型使用建议">
+        <div>
+          <span>哪些领域适合用</span>
+          <h3>适合让它做“语言和结构”的工作</h3>
+          <ul>
+            <li>学习入门：把陌生概念讲成可理解的版本。</li>
+            <li>写作整理：提纲、摘要、润色、换一种表达。</li>
+            <li>代码辅助：解释报错、生成草稿、梳理方案。</li>
+            <li>资料归纳：在给出来源后，帮你整理重点和差异。</li>
+          </ul>
+        </div>
+        <div>
+          <span>怎么用更稳</span>
+          <h3>把它当助手，不当裁判</h3>
+          <ul>
+            <li>先说清目标、受众、限制和输出格式。</li>
+            <li>需要事实时给资料，并要求列出依据和不确定点。</li>
+            <li>关键结论自己核验；医疗、法律、金融等高风险问题找专业来源。</li>
+            <li>让它帮你扩大思路，但最后的价值判断和责任仍然在人。</li>
+          </ul>
+        </div>
       </div>
     </div>
   `;
@@ -2287,42 +2403,59 @@ function drawRagOutputBox(x, y, width, height) {
 }
 
 function drawSummaryFlow(width, height) {
-  const top = 58;
-  const rowY = 88;
-  const inputX = 34;
-  const coreX = inputX + 146;
-  const outputX = coreX + 236;
-  const checkX = outputX + 178;
+  const margin = 34;
+  const top = 56;
+  const centerY = top + 78;
+  const gap = Math.max(18, Math.min(32, width * 0.035));
+  let inputW = 96;
+  let coreW = 198;
+  let outputW = 140;
+  let checkW = 156;
+  const available = width - margin * 2;
+  const baseTotal = inputW + coreW + outputW + checkW + gap * 3;
 
-  drawLabel("总结链路：输入 → 模型生成 → 输出 → 人来核验", 34, 34, "#182026");
-  drawSummaryInputStack(inputX, top);
-  drawConnectorArrow(inputX + 106, rowY + 26, coreX - 12, rowY + 26, "#138f8a", 0.08);
-  drawSummaryCore(coreX, top, 196, 132);
-  drawConnectorArrow(coreX + 204, rowY + 26, outputX - 12, rowY + 26, "#3578c7", 0.24);
-  drawSummaryOutput(outputX, top + 10, 138, 112);
-  drawConnectorArrow(outputX + 146, rowY + 26, checkX - 12, rowY + 26, "#e85d4f", 0.38);
-  drawSummaryCheck(checkX, top + 10, 154, 112);
+  if (baseTotal > available) {
+    const scale = Math.max(0.72, (available - gap * 3) / (inputW + coreW + outputW + checkW));
+    inputW = Math.round(inputW * scale);
+    coreW = Math.round(coreW * scale);
+    outputW = Math.round(outputW * scale);
+    checkW = Math.round(checkW * scale);
+  }
+
+  const totalWidth = inputW + coreW + outputW + checkW + gap * 3;
+  const inputX = Math.max(margin, margin + (available - totalWidth) / 2);
+  const coreX = inputX + inputW + gap;
+  const outputX = coreX + coreW + gap;
+  const checkX = outputX + outputW + gap;
+
+  drawLabel("理解闭环：材料进入模型，结果必须回到人和证据那里校验", margin, 34, "#182026");
+  drawSummaryInputStack(inputX, top, inputW);
+  drawConnectorArrow(inputX + inputW + 6, centerY, coreX - 12, centerY, "#138f8a", 0.08);
+  drawSummaryCore(coreX, top, coreW, 132);
+  drawConnectorArrow(coreX + coreW + 8, centerY, outputX - 12, centerY, "#3578c7", 0.24);
+  drawSummaryOutput(outputX, top + 10, outputW, 112);
+  drawConnectorArrow(outputX + outputW + 8, centerY, checkX - 12, centerY, "#e85d4f", 0.38);
+  drawSummaryCheck(checkX, top + 10, checkW, 112);
+}
+function drawSummaryInputStack(x, y, width = 94) {
+  drawSummaryPill("文字", x, y, "#dff4f1", "#138f8a", width);
+  drawSummaryPill("上下文", x, y + 48, "#e5eefb", "#3578c7", width);
+  drawSummaryPill("资料", x, y + 96, "#fff1cf", "#f5b84b", width);
 }
 
-function drawSummaryInputStack(x, y) {
-  drawSummaryPill("文字", x, y, "#dff4f1", "#138f8a");
-  drawSummaryPill("上下文", x, y + 48, "#e5eefb", "#3578c7");
-  drawSummaryPill("资料", x, y + 96, "#fff1cf", "#f5b84b");
-}
-
-function drawSummaryPill(text, x, y, fill, stroke) {
+function drawSummaryPill(text, x, y, fill, stroke, width = 94) {
   ctx.save();
   ctx.fillStyle = fill;
   ctx.strokeStyle = stroke;
   ctx.lineWidth = 2;
-  roundRect(x, y, 94, 38, 8);
+  roundRect(x, y, width, 38, 8);
   ctx.fill();
   ctx.stroke();
   ctx.fillStyle = "#182026";
   ctx.font = "900 15px Microsoft YaHei, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(text, x + 47, y + 20);
+  ctx.fillText(text, x + width / 2, y + 20);
   ctx.restore();
 }
 
