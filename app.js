@@ -1,3 +1,9 @@
+const ACCESS_GATE = {
+  // true: 需要输入访问码；false: 直接开放网页。
+  enabled: true,
+  code: "renyufeng",
+  rememberKey: "llm-understanding-access-ok",
+};
 const icons = {
   check:
     '<svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.2 16.6-4-4 1.4-1.4 2.6 2.6 8.2-8.2L18.8 7 9.2 16.6Z"/></svg>',
@@ -244,6 +250,10 @@ const dom = {
   riskHint: document.querySelector("#riskHint"),
   coachNote: document.querySelector("#coachNote"),
   resetButton: document.querySelector("#resetButton"),
+  accessGate: document.querySelector("#accessGate"),
+  accessForm: document.querySelector("#accessForm"),
+  accessCodeInput: document.querySelector("#accessCodeInput"),
+  accessGateError: document.querySelector("#accessGateError"),
   toast: document.querySelector("#toast"),
   machineMode: document.querySelector("#machineMode"),
   machinePulse: document.querySelector("#machinePulse"),
@@ -270,6 +280,49 @@ function showToast(message) {
   toastTimer = window.setTimeout(() => {
     dom.toast.classList.remove("show");
   }, 2200);
+}
+
+function unlockAccessGate() {
+  document.body.classList.remove("access-locked");
+  dom.accessGate?.setAttribute("hidden", "");
+}
+
+function initAccessGate() {
+  if (!dom.accessGate) return;
+
+  if (!ACCESS_GATE.enabled) {
+    unlockAccessGate();
+    return;
+  }
+
+  const hasAccess = window.localStorage.getItem(ACCESS_GATE.rememberKey) === "yes";
+  if (hasAccess) {
+    unlockAccessGate();
+    return;
+  }
+
+  document.body.classList.add("access-locked");
+  dom.accessGate.removeAttribute("hidden");
+  window.setTimeout(() => dom.accessCodeInput?.focus(), 80);
+
+  dom.accessForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const inputCode = dom.accessCodeInput.value.trim();
+
+    if (inputCode === ACCESS_GATE.code) {
+      window.localStorage.setItem(ACCESS_GATE.rememberKey, "yes");
+      dom.accessGateError.textContent = "";
+      unlockAccessGate();
+      showToast("验证通过，欢迎进入。");
+      return;
+    }
+
+    dom.accessGateError.textContent = "验证码不对，请再试一次。";
+    dom.accessForm.classList.remove("shake");
+    void dom.accessForm.offsetWidth;
+    dom.accessForm.classList.add("shake");
+    dom.accessCodeInput.select();
+  });
 }
 
 function resetTransientState() {
@@ -886,6 +939,20 @@ function renderAttentionLevel(level) {
           </div>
           <p>所以 Q/K/V 不是三个新输入，而是同一份上下文矩阵经过三组训练得到的权重矩阵后，变成了三种用途的表示。</p>
         </div>
+      </div>
+
+      <div class="attention-row attention-row-single">
+        <figure class="qkv-reference-panel">
+          <figcaption>
+            <span>完整流程参考图</span>
+            <strong>从 X 到 Q/K/V，再到注意力权重和新表示</strong>
+          </figcaption>
+          <div class="qkv-reference-frame">
+            <a href="assets/qkv-reference.png" target="_blank" rel="noopener">
+              <img src="assets/qkv-reference.png" alt="Transformer 注意力中的 Q、K、V 计算流程图">
+            </a>
+          </div>
+        </figure>
       </div>
 
       <div class="attention-row">
@@ -2671,5 +2738,6 @@ dom.resetButton.addEventListener("click", () => {
 
 window.addEventListener("resize", () => resizeCanvasForDisplay());
 
+initAccessGate();
 render();
 drawCanvas();

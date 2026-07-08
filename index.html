@@ -6,7 +6,7 @@
     <title>大模型基础知识理解——by 任雨峰</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body>
+  <body class="access-locked">
     <div class="app-shell">
       <header class="topbar">
         <div class="brand-block">
@@ -86,6 +86,21 @@
           <div id="coachNote" class="coach-note"></div>
         </aside>
       </main>
+    </div>
+
+    <div id="accessGate" class="access-gate" role="dialog" aria-modal="true" aria-labelledby="accessGateTitle">
+      <form id="accessForm" class="access-card" autocomplete="off">
+        <span class="access-eyebrow">访问验证</span>
+        <h2 id="accessGateTitle">请输入访问码</h2>
+        <p>这个网页暂时加了一个轻量入口，方便之后控制是否对外开放。</p>
+        <label class="access-input-label" for="accessCodeInput">验证码</label>
+        <div class="access-input-row">
+          <input id="accessCodeInput" type="password" inputmode="text" autocomplete="off" placeholder="输入访问码" aria-describedby="accessGateError" />
+          <button class="primary-button" type="submit">进入网页</button>
+        </div>
+        <p id="accessGateError" class="access-error" aria-live="polite"></p>
+        <p class="access-note">提示：这是静态网页的轻量访问口，不等同于服务器级权限控制。</p>
+      </form>
     </div>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
